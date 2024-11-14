@@ -49,13 +49,21 @@ export class nexus {
       hostUri.searchParams.set('maven.classifier', classifier);
     }
     // switch to the "version" criteria, should work in the case of release and snapshot versions
-    // hostUri.searchParams.append("maven.baseVersion", baseVersion);
-    hostUri.searchParams.append('version', version);
+    hostUri.searchParams.append('maven.baseVersion', version);
+    // hostUri.searchParams.append('version', version);
+
+    if (this.isSnapshot(version)) {
+      hostUri.searchParams.set('sort', 'version');
+    }
 
     console.log(`Download asset using '${hostUri}'.`);
     // Execute the request
     await this.executeRequest(hostUri, auth, acceptUntrustedCerts);
     console.log(`Completed download asset using '${hostUri}'.`);
+  }
+
+  private isSnapshot(version: string): boolean {
+    return /-SNAPSHOT$/.test(version);
   }
 
   private async executeRequest(
