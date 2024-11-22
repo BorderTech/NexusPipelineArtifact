@@ -1,9 +1,9 @@
 {
     "$schema": "https://raw.githubusercontent.com/Microsoft/azure-pipelines-task-lib/master/tasks.schema.json",
-    "id": "a843bbfd-4ced-4e8d-8102-cf2f193ee283",
-    "name": "DownloadArtifactsNexusMavenRepository",
-    "friendlyName": "Download Artifacts - Nexus Maven Repository v2",
-    "description": "Download Nexus Maven Repository v2 Artifact",
+    "id": "1db24661-9a4c-4ccf-bedf-69dc6718663f",
+    "name": "HADownloadArtifactsNexusMavenRepository",
+    "friendlyName": "BCZ Download Artifacts - Nexus Repository v2",
+    "description": "BCZ Download Nexus Repository v2 Artifact",
     "helpMarkDown": "[More Information](https://marketplace.visualstudio.com/items?itemName=soft-cor.nexus-custom-release-artifact-extension)",
     "category": "Deploy",
     "visibility": ["Release"],
@@ -15,12 +15,12 @@
     "preview": false,
     "author": "soft-cor",
     "version": {
-        "Major": 2,
+        "Major": 5,
         "Minor": 0,
-        "Patch": 61
+        "Patch": 0
     },
     "minimumAgentVersion": "2.144.0",
-    "instanceNameFormat": "Download Artifacts - Nexus Maven Repository v2",
+    "instanceNameFormat": "BCZ Download Artifacts - Nexus Repository v2",
     "inputs": [
             {
             "name": "connection",
