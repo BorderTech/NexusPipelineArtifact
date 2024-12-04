@@ -1,7 +1,5 @@
 import tl = require('azure-pipelines-task-lib/task');
 import path = require('path');
-import * as xml2js from 'xml2js';
-import * as xpath from 'xml2js-xpath';
 import { IhttpHelper } from './IhttpHelper';
 import { httpHelper } from './httpHelper';
 const helper: IhttpHelper = new httpHelper();
@@ -15,23 +13,20 @@ export class nexus {
     group: string,
     artifact: string,
     version: string,
-    extension: string,
-    packaging: string,
+    extension?: string,
+    packaging?: string,
     classifier?: string
   ): Promise<void> {
     // Build the final download uri
-    const hostUri = new URL(nexusUrl);
+
+    const hostUri = this.getApiUrl(
+      nexusUrl,
+      auth,
+      acceptUntrustedCerts,
+      repository,
+      '/search/assets/download'
+    );
     // https://help.sonatype.com/repomanager3/rest-and-integration-api/search-api
-    // Build the final search uri
-    let requestPath = '/service/rest/v1/search/assets/download';
-
-    // Handle root path
-    if (hostUri.pathname !== '/') {
-      requestPath = path.join(hostUri.pathname, requestPath);
-    }
-    hostUri.pathname = requestPath;
-
-    // Query Parameters
 
     // *** ONLY Works in Nexus 3.16+ ***
     // https://help.sonatype.com/repomanager3/rest-and-integration-api/search-api#SearchAPI-DownloadingtheLatestVersionofanAsset
@@ -40,20 +35,27 @@ export class nexus {
     // *** ONLY Works in Nexus 3.16+ ***
 
     hostUri.searchParams.append('repository', repository);
-    hostUri.searchParams.append('maven.groupId', group);
-    hostUri.searchParams.append('maven.artifactId', artifact);
-    hostUri.searchParams.append('maven.extension', extension);
-    hostUri.searchParams.append('maven.classifier', '');
-    // Do we have a classifier
-    if (classifier) {
+    if (this.hasValue(group)) {
+      hostUri.searchParams.append('group', group);
+    }
+    hostUri.searchParams.append('name', artifact);
+
+    if (this.hasValue(extension)) {
+      hostUri.searchParams.append('maven.extension', extension);
+    }
+
+    // hostUri.searchParams.append('maven.classifier', '');
+
+    if (this.hasValue(classifier)) {
       hostUri.searchParams.set('maven.classifier', classifier);
     }
     // switch to the "version" criteria, should work in the case of release and snapshot versions
-    hostUri.searchParams.append('maven.baseVersion', version);
-    // hostUri.searchParams.append('version', version);
 
     if (this.isSnapshot(version)) {
+      hostUri.searchParams.append('maven.baseVersion', version);
       hostUri.searchParams.set('sort', 'version');
+    } else {
+      hostUri.searchParams.append('version', version);
     }
 
     console.log(`Download asset using '${hostUri}'.`);
@@ -64,6 +66,22 @@ export class nexus {
 
   private isSnapshot(version: string): boolean {
     return /-SNAPSHOT$/.test(version);
+  }
+
+  private getApiUrl(
+    nexusUrl: string,
+    auth: tl.EndpointAuthorization,
+    acceptUntrustedCerts: boolean,
+    repository: string,
+    apiPath: string
+  ) {
+    const hostUri = new URL(nexusUrl);
+    let requestPath = path.join('/service/rest/v1', apiPath);
+    if (hostUri.pathname !== '/') {
+      requestPath = path.join(hostUri.pathname, requestPath);
+    }
+    hostUri.pathname = requestPath;
+    return hostUri;
   }
 
   private async executeRequest(
@@ -102,6 +120,34 @@ export class nexus {
       console.log(`Failed to execute request '${hostUri}'.`);
       throw inner_err;
     }
+    console.log('Got responseContent', responseContent);
     return responseContent;
+  }
+
+  public async getRepositoryInfo(
+    nexusUrl: string,
+    auth: tl.EndpointAuthorization,
+    acceptUntrustedCerts: boolean,
+    repository: string
+  ) {
+
+    const hostUri = this.getApiUrl(
+      nexusUrl,
+      auth,
+      acceptUntrustedCerts,
+      repository,
+      `/repositories/${repository}`
+    );
+    console.log('Getting repository information from:', hostUri.href);
+    const responseContent = await this.executeRequest(
+      hostUri,
+      auth,
+      acceptUntrustedCerts
+    );
+    return JSON.parse(responseContent);
+  }
+
+  public hasValue(param) {
+    return param && !/^\s*-\s*$/.test(param);
   }
 }

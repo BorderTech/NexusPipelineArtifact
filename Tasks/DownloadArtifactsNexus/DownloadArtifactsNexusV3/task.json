@@ -16,8 +16,8 @@
     "author": "soft-cor",
     "version": {
         "Major": 5,
-        "Minor": 0,
-        "Patch": 0
+        "Minor": 1,
+        "Patch": 9
     },
     "minimumAgentVersion": "2.144.0",
     "instanceNameFormat": "BCZ Download Artifacts - Nexus Repository v3",
@@ -55,7 +55,7 @@
             "type": "pickList",
             "label": "Group Id",
             "defaultValue": "",
-            "required": true,
+            "required": false,
             "properties": {
               "EditableOptions": "True"
             },
@@ -111,7 +111,7 @@
             "label": "Packaging",
             "type": "pickList",
             "defaultValue": "",
-            "required": true,
+            "required": false,
             "properties": {
               "EditableOptions": "True"
             },

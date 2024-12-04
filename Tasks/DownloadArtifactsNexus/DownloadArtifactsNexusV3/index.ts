@@ -1,9 +1,28 @@
 import tl = require('azure-pipelines-task-lib/task');
 import shell = require('shelljs');
-import path = require('path');
 import fs = require('fs');
 import n = require('nexus-v3');
 const nexus = new n.nexus();
+
+const defaultRepoType = 'maven2';
+const requiredParams = {
+  maven2: {
+    group: true,
+    artifact: true,
+    baseVersion: true,
+    packaging: true,
+    classifier: false,
+    extension: false,
+  },
+  npm: {
+    group: false,
+    artifact: true,
+    baseVersion: true,
+    packaging: false,
+    classifier: false,
+    extension: false,
+  },
+};
 
 async function run() {
   console.log('Downloading artifact.');
@@ -48,15 +67,42 @@ async function run() {
 
     // Get the Nexus repository details
     const repository: string | undefined = tl.getInput('repository', true);
-    const group: string | undefined = tl.getInput('group', true);
-    const artifact: string | undefined = tl.getInput('artifact', true);
-    const version: string | undefined = tl.getInput('baseVersion', true);
-    const packaging: string | undefined = tl.getInput('packaging', true);
-    const classifier: string | undefined = tl.getInput('classifier', false);
-    let extension: string | undefined = tl.getInput('extension', false);
+    const repoInfo = await nexus.getRepositoryInfo(
+      hostUri.href,
+      auth,
+      acceptUntrustedCerts,
+      repository
+    );
+
+    const repoType = repoInfo.format || defaultRepoType;
+    console.log('Detected repo type:', repoType);
+    const required =
+      requiredParams[repoType] || requiredParams[defaultRepoType];
+
+    const group: string | undefined = tl.getInput('group', required.group);
+    const artifact: string | undefined = tl.getInput(
+      'artifact',
+      required.artifact
+    );
+    const version: string | undefined = tl.getInput(
+      'baseVersion',
+      required.baseVersion
+    );
+    const packaging: string | undefined = tl.getInput(
+      'packaging',
+      required.packaging
+    );
+    const classifier: string | undefined = tl.getInput(
+      'classifier',
+      required.classifier
+    );
+    let extension: string | undefined = tl.getInput(
+      'extension',
+      required.extension
+    );
     const downloadPath: string | undefined = tl.getInput('downloadPath', false);
 
-    // Do we have a extension
+    // Do we have an extension
     if (!extension) {
       console.log(
         'Extension has not been supplied, set default packaging extension.'
@@ -70,7 +116,7 @@ async function run() {
     }
 
     tl.debug(`Checking if downloadPath folder '${downloadPath}' exists.`);
-    // Create the repo folder if doesnt exist
+    // Create the repo folder if it doesn't exist
     if (!fs.existsSync(downloadPath)) {
       tl.debug('downloadPath folder does not exist therefore creating folder.');
       shell.mkdir(downloadPath);
@@ -101,13 +147,13 @@ async function run() {
 
     console.log(`Using Packaging ${packaging}.`);
 
-    if (extension) {
+    if (nexus.hasValue(extension)) {
       console.log(`Using extension ${extension}.`);
     } else {
       console.log('Extension has not been supplied.');
     }
 
-    if (classifier) {
+    if (nexus.hasValue(classifier)) {
       console.log(`Using classifier ${classifier}.`);
     } else {
       console.log('Classifier has not been supplied.');
