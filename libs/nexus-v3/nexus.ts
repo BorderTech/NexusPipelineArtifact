@@ -2,7 +2,9 @@ import tl = require('azure-pipelines-task-lib/task');
 import path = require('path');
 import { IhttpHelper } from './IhttpHelper';
 import { httpHelper } from './httpHelper';
+import cache = require('persistent-cache');
 const helper: IhttpHelper = new httpHelper();
+const infoCache = cache();
 
 export class nexus {
   public async downloadAsset(
@@ -130,7 +132,6 @@ export class nexus {
     acceptUntrustedCerts: boolean,
     repository: string
   ) {
-
     const hostUri = this.getApiUrl(
       nexusUrl,
       auth,
@@ -138,13 +139,29 @@ export class nexus {
       repository,
       `/repositories/${repository}`
     );
-    console.log('Getting repository information from:', hostUri.href);
-    const responseContent = await this.executeRequest(
-      hostUri,
-      auth,
-      acceptUntrustedCerts
-    );
-    return JSON.parse(responseContent);
+
+    return new Promise((win, lose) => {
+      infoCache.get(hostUri.href, (err, responseContent) => {
+        if (err) {
+          return lose(err);
+        }
+        if (responseContent) {
+          console.log('Got repository information from cache:', hostUri.href);
+          return win(JSON.parse(<string>responseContent));
+        }
+        console.log(
+          'Cache miss fetching repository information:',
+          hostUri.href
+        );
+        this.executeRequest(hostUri, auth, acceptUntrustedCerts).then(
+          (responseContent) => {
+            infoCache.put(hostUri.href, responseContent, () =>
+              win(JSON.parse(<string>responseContent))
+            );
+          }
+        );
+      });
+    });
   }
 
   public hasValue(param) {

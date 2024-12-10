@@ -8,17 +8,20 @@
   "dependencies": {
     "azure-pipelines-task-lib": "^2.9.3",
     "path": "^0.12.7",
+    "persistent-cache": "^1.1.2",
     "xml2js": "^0.4.23",
     "xml2js-xpath": "^0.11.0"
   },
   "devDependencies": {
     "@types/node": "^12.12.15",
     "@types/shelljs": "^0.8.6",
+    "mocha": "^11.0.1",
     "tslint": "^6.1.0",
     "typescript": "^3.8.3",
     "typescript-tslint-plugin": "^0.5.5"
   },
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "test": "mocha"
   }
 }
