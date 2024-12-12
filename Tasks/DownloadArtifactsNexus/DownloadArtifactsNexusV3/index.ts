@@ -187,9 +187,13 @@ async function run() {
     );
     if (MAVEN_REPOSITORY_ASSET_FILENAMES) {
       const MAVEN_REPOSITORY_ASSET_FILENAME: string[] =
-        MAVEN_REPOSITORY_ASSET_FILENAMES.split(',').filter((file) =>
-          file.includes(`.${packaging}`)
-        );
+        MAVEN_REPOSITORY_ASSET_FILENAMES.split(',').filter((file) => {
+          return file.includes(`.${packaging}`) || repoType !== 'maven2';
+        });
+      console.log(
+        'MAVEN_REPOSITORY_ASSET_FILENAME',
+        MAVEN_REPOSITORY_ASSET_FILENAME
+      );
       if (MAVEN_REPOSITORY_ASSET_FILENAME.length == 1) {
         tl.setVariable(
           'MAVEN_REPOSITORY_ASSET_FILENAME',

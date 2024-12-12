@@ -5,6 +5,8 @@ import http = require('http');
 import https = require('https');
 import { IhttpHelper } from './IhttpHelper';
 
+const outputVariableName = 'MAVEN_REPOSITORY_ASSET_FILENAMES';
+
 export class httpHelper implements IhttpHelper {
   public async execute_http(searchUri: URL): Promise<string>;
   public async execute_http(
@@ -128,25 +130,25 @@ export class httpHelper implements IhttpHelper {
                       file.end();
 
                       // Maintain a list of files that have been downloaded and set a pipeline variable containing the list
+                      let updatedFilenames = filename;
                       const MAVEN_REPOSITORY_ASSET_FILENAMES: string =
-                        tl.getVariable('MAVEN_REPOSITORY_ASSET_FILENAMES');
+                        tl.getVariable(outputVariableName);
                       if (MAVEN_REPOSITORY_ASSET_FILENAMES) {
                         if (
                           !MAVEN_REPOSITORY_ASSET_FILENAMES.includes(filename)
                         ) {
-                          tl.setVariable(
-                            'MAVEN_REPOSITORY_ASSET_FILENAMES',
-                            `${MAVEN_REPOSITORY_ASSET_FILENAMES},${filename}`,
-                            false
-                          );
+                          updatedFilenames = `${MAVEN_REPOSITORY_ASSET_FILENAMES},${updatedFilenames}`;
                         }
-                      } else {
-                        tl.setVariable(
-                          'MAVEN_REPOSITORY_ASSET_FILENAMES',
-                          filename,
-                          false
-                        );
                       }
+                      console.log(
+                        `Setting '${outputVariableName}'`,
+                        updatedFilenames
+                      );
+                      tl.setVariable(
+                        outputVariableName,
+                        updatedFilenames,
+                        false
+                      );
 
                       console.log(
                         `Successfully downloaded asset '${filename}' using '${downloadUri}'.`

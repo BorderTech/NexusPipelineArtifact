@@ -17,7 +17,7 @@
     "version": {
         "Major": 5,
         "Minor": 1,
-        "Patch": 9
+        "Patch": 23
     },
     "minimumAgentVersion": "2.144.0",
     "instanceNameFormat": "BCZ Download Artifacts - Nexus Repository v3",
@@ -211,7 +211,7 @@
       }
     ],
     "execution": {
-        "Node10": {
+        "Node16": {
             "target": "index.js"
         }
     }

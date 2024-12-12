@@ -6,7 +6,7 @@
   "author": "Gareth Emslie",
   "license": "MIT",
   "dependencies": {
-    "azure-pipelines-task-lib": "^2.9.3",
+    "azure-pipelines-task-lib": "4.3.1",
     "path": "^0.12.7",
     "persistent-cache": "^1.1.2",
     "xml2js": "^0.4.23",
@@ -21,7 +21,7 @@
     "typescript-tslint-plugin": "^0.5.5"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run test",
     "test": "mocha"
   }
 }
