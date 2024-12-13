@@ -6,6 +6,62 @@ import cache = require('persistent-cache');
 const helper: IhttpHelper = new httpHelper();
 const infoCache = cache();
 
+const defaultRepoType = 'maven2';
+const parameterMap = {
+  maven2: {
+    repository: {
+      name: 'repository',
+      required: true,
+    },
+    group: {
+      name: 'maven.groupId',
+      required: true,
+    },
+    artifact: {
+      name: 'maven.artifactId',
+      required: true,
+    },
+    // packaging is not even used!
+    packaging: {
+      name: 'packaging',
+      required: false,
+    },
+    classifier: {
+      name: 'maven.classifier',
+      required: false,
+      defaultVal: '',
+    },
+    extension: {
+      name: 'maven.extension',
+      required: false,
+    },
+  },
+  npm: {
+    repository: {
+      name: 'repository',
+      required: true,
+    },
+    group: {
+      name: 'npm.scope',
+      required: false,
+    },
+    artifact: {
+      name: 'name',
+      required: true,
+    },
+  },
+  nuget: {
+    repository: {
+      name: 'repository',
+      required: true,
+    },
+    artifact: {
+      name: 'nuget.id',
+      required: true,
+    },
+  },
+};
+
 export class nexus {
   public async downloadAsset(
     nexusUrl: string,
@@ -19,46 +75,17 @@ export class nexus {
     packaging?: string,
     classifier?: string
   ): Promise<void> {
-    // Build the final download uri
-
-    const hostUri = this.getApiUrl(
+    const hostUri = await this.buildDownloadUri(
       nexusUrl,
       auth,
       acceptUntrustedCerts,
       repository,
-      '/search/assets/download'
+      group,
+      artifact,
+      version,
+      extension,
+      classifier
     );
-    // https://help.sonatype.com/repomanager3/rest-and-integration-api/search-api
-
-    // *** ONLY Works in Nexus 3.16+ ***
-    // https://help.sonatype.com/repomanager3/rest-and-integration-api/search-api#SearchAPI-DownloadingtheLatestVersionofanAsset
-    // We could use /service/rest/v1/status and look at the response header "server: Nexus/3.21.1-01 (OSS)"
-    // hostUri.searchParams.append("sort", "version");
-    // *** ONLY Works in Nexus 3.16+ ***
-
-    hostUri.searchParams.append('repository', repository);
-    if (this.hasValue(group)) {
-      hostUri.searchParams.append('group', group);
-    }
-    hostUri.searchParams.append('name', artifact);
-
-    if (this.hasValue(extension)) {
-      hostUri.searchParams.append('maven.extension', extension);
-    }
-
-    // hostUri.searchParams.append('maven.classifier', '');
-
-    if (this.hasValue(classifier)) {
-      hostUri.searchParams.set('maven.classifier', classifier);
-    }
-    // switch to the "version" criteria, should work in the case of release and snapshot versions
-
-    if (this.isSnapshot(version)) {
-      hostUri.searchParams.append('maven.baseVersion', version);
-      hostUri.searchParams.set('sort', 'version');
-    } else {
-      hostUri.searchParams.append('version', version);
-    }
 
     console.log(`Download asset using '${hostUri}'.`);
     // Execute the request
@@ -66,17 +93,80 @@ export class nexus {
     console.log(`Completed download asset using '${hostUri}'.`);
   }
 
-  private isSnapshot(version: string): boolean {
-    return /-SNAPSHOT$/.test(version);
-  }
-
-  private getApiUrl(
+  protected async buildDownloadUri(
     nexusUrl: string,
     auth: tl.EndpointAuthorization,
     acceptUntrustedCerts: boolean,
     repository: string,
-    apiPath: string
-  ) {
+    group: string,
+    artifact: string,
+    version: string,
+    extension?: string,
+    classifier?: string
+  ): Promise<URL> {
+    const repoInfo = await this.getRepositoryInfo(
+      nexusUrl,
+      auth,
+      acceptUntrustedCerts,
+      repository
+    );
+    const repoType = repoInfo['format'] || defaultRepoType;
+    const pmap = parameterMap[repoType] || parameterMap[defaultRepoType];
+
+    // Build the final download uri
+    const hostUri = this.getApiUrl(nexusUrl, '/search/assets/download');
+    // https://help.sonatype.com/repomanager3/rest-and-integration-api/search-api
+
+    // *** ONLY Works in Nexus 3.16+ ***
+    // https://help.sonatype.com/repomanager3/rest-and-integration-api/search-api#SearchAPI-DownloadingtheLatestVersionofanAsset
+    // We could use /service/rest/v1/status and look at the response header "server: Nexus/3.21.1-01 (OSS)"
+    // hostUri.searchParams.append("sort", "version");
+    // *** ONLY Works in Nexus 3.16+ ***
+    const errors = [];
+
+    const addParameterToUri = (parameterName, paramValue) => {
+      const pInfo = pmap[parameterName];
+      if (pInfo) {
+        // eslint-disable-next-line no-prototype-builtins
+        if (paramValue || pInfo.hasOwnProperty('defaultVal')) {
+          const value = paramValue || pInfo.defaultVal;
+          hostUri.searchParams.append(pInfo.name, value);
+        } else if (pInfo.required) {
+          errors.push(`The '${parameterName}' parameter is required!`);
+        }
+      } else {
+        console.log(`Ignoring '${parameterName}' for repo type '${repoType}'`);
+      }
+    };
+
+    addParameterToUri('repository', repository);
+    addParameterToUri('group', group);
+    addParameterToUri('artifact', artifact);
+    addParameterToUri('extension', extension);
+    addParameterToUri('classifier', classifier);
+
+    if (version) {
+      // not every type of package needs a version
+      if (this.isSnapshot(version)) {
+        hostUri.searchParams.append('maven.baseVersion', version);
+        hostUri.searchParams.set('sort', 'version');
+      } else {
+        hostUri.searchParams.append('version', version);
+      }
+    }
+
+    if (errors.length) {
+      return Promise.reject(errors.join('\n'));
+    }
+
+    return Promise.resolve(hostUri);
+  }
+
+  private isSnapshot(version: string): boolean {
+    return /-SNAPSHOT$/.test(version);
+  }
+
+  private getApiUrl(nexusUrl: string, apiPath: string) {
     const hostUri = new URL(nexusUrl);
     let requestPath = path.join('/service/rest/v1', apiPath);
     if (hostUri.pathname !== '/') {
@@ -132,13 +222,7 @@ export class nexus {
     acceptUntrustedCerts: boolean,
     repository: string
   ) {
-    const hostUri = this.getApiUrl(
-      nexusUrl,
-      auth,
-      acceptUntrustedCerts,
-      repository,
-      `/repositories/${repository}`
-    );
+    const hostUri = this.getApiUrl(nexusUrl, `/repositories/${repository}`);
 
     return new Promise((win, lose) => {
       infoCache.get(hostUri.href, (err, responseContent) => {
@@ -162,9 +246,5 @@ export class nexus {
         );
       });
     });
-  }
-
-  public hasValue(param) {
-    return param && !/^\s*-\s*$/.test(param);
   }
 }

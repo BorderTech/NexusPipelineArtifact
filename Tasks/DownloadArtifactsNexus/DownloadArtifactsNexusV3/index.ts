@@ -4,33 +4,9 @@ import fs = require('fs');
 import n = require('nexus-v3');
 const nexus = new n.nexus();
 
-const defaultRepoType = 'maven2';
-const requiredParams = {
-  maven2: {
-    group: true,
-    artifact: true,
-    baseVersion: true,
-    packaging: true,
-    classifier: false,
-    extension: false,
-  },
-  npm: {
-    group: false,
-    artifact: true,
-    baseVersion: true,
-    packaging: false,
-    classifier: false,
-    extension: false,
-  },
-};
-
 async function run() {
   console.log('Downloading artifact.');
   try {
-    // Are we debugging?
-    const systemDebug = /true/i.test(
-      process.env.SYSTEM_DEBUG ? process.env.SYSTEM_DEBUG : 'false'
-    );
     // Get the task parameters
     const connection: string | undefined = tl.getInput('connection', false);
 
@@ -67,39 +43,13 @@ async function run() {
 
     // Get the Nexus repository details
     const repository: string | undefined = tl.getInput('repository', true);
-    const repoInfo = await nexus.getRepositoryInfo(
-      hostUri.href,
-      auth,
-      acceptUntrustedCerts,
-      repository
-    );
 
-    const repoType = repoInfo.format || defaultRepoType;
-    console.log('Detected repo type:', repoType);
-    const required =
-      requiredParams[repoType] || requiredParams[defaultRepoType];
-
-    const group: string | undefined = tl.getInput('group', required.group);
-    const artifact: string | undefined = tl.getInput(
-      'artifact',
-      required.artifact
-    );
-    const version: string | undefined = tl.getInput(
-      'baseVersion',
-      required.baseVersion
-    );
-    const packaging: string | undefined = tl.getInput(
-      'packaging',
-      required.packaging
-    );
-    const classifier: string | undefined = tl.getInput(
-      'classifier',
-      required.classifier
-    );
-    let extension: string | undefined = tl.getInput(
-      'extension',
-      required.extension
-    );
+    const group: string | undefined = tl.getInput('group', false);
+    const artifact: string | undefined = tl.getInput('artifact', true);
+    const version: string | undefined = tl.getInput('baseVersion', false);
+    const packaging: string | undefined = tl.getInput('packaging', false);
+    const classifier: string | undefined = tl.getInput('classifier', false);
+    let extension: string | undefined = tl.getInput('extension', false);
     const downloadPath: string | undefined = tl.getInput('downloadPath', false);
 
     // Do we have an extension
@@ -147,13 +97,13 @@ async function run() {
 
     console.log(`Using Packaging ${packaging}.`);
 
-    if (nexus.hasValue(extension)) {
+    if (extension) {
       console.log(`Using extension ${extension}.`);
     } else {
       console.log('Extension has not been supplied.');
     }
 
-    if (nexus.hasValue(classifier)) {
+    if (classifier) {
       console.log(`Using classifier ${classifier}.`);
     } else {
       console.log('Classifier has not been supplied.');
@@ -186,10 +136,15 @@ async function run() {
       'MAVEN_REPOSITORY_ASSET_FILENAMES'
     );
     if (MAVEN_REPOSITORY_ASSET_FILENAMES) {
-      const MAVEN_REPOSITORY_ASSET_FILENAME: string[] =
-        MAVEN_REPOSITORY_ASSET_FILENAMES.split(',').filter((file) => {
-          return file.includes(`.${packaging}`) || repoType !== 'maven2';
-        });
+      let MAVEN_REPOSITORY_ASSET_FILENAME: string[] =
+        MAVEN_REPOSITORY_ASSET_FILENAMES.split(',');
+      if (MAVEN_REPOSITORY_ASSET_FILENAME.length > 1) {
+        MAVEN_REPOSITORY_ASSET_FILENAME =
+          MAVEN_REPOSITORY_ASSET_FILENAME.filter((file) => {
+            // Might need to call getRepositoryInfo here to filter based on type
+            return file.includes(`.${packaging}`);
+          });
+      }
       console.log(
         'MAVEN_REPOSITORY_ASSET_FILENAME',
         MAVEN_REPOSITORY_ASSET_FILENAME

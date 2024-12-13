@@ -1,8 +1,8 @@
 {
   "manifestVersion": 1,
   "id": "bcz-nexus-custom-release-artifact-extension",
-  "publisher": "HomeAffairs",
-  "version": "1.0.177",
+  "publisher": "",
+  "version": "1.0.180",
   "name": "BCZ Sonatype Nexus Repository Release Artifact",
   "description": "Add support for Sonatype Nexus Repository as an artifact for Release Pipelines",
   "public": false,
