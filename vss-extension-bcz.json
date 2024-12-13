@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "id": "bcz-nexus-custom-release-artifact-extension",
   "publisher": "",
-  "version": "1.0.180",
+  "version": "1.0.181",
   "name": "BCZ Sonatype Nexus Repository Release Artifact",
   "description": "Add support for Sonatype Nexus Repository as an artifact for Release Pipelines",
   "public": false,
@@ -217,7 +217,7 @@
           {
             "id": "group",
             "name": "Group Id",
-            "description": "The Maven groupId for a component.",
+            "description": "Maven groupId or NPM scope.",
             "inputMode": "Combo",
             "isConfidential": false,
             "hasDynamicValueInformation": true,
@@ -234,7 +234,7 @@
           {
             "id": "artifact",
             "name": "Artifact Id",
-            "description": "The Maven artifactId for a component.",
+            "description": "Maven artifactId or NPM name.",
             "inputMode": "Combo",
             "isConfidential": false,
             "hasDynamicValueInformation": true,

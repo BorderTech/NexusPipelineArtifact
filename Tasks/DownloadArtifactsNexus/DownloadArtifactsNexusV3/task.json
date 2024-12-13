@@ -17,7 +17,7 @@
     "version": {
         "Major": 5,
         "Minor": 1,
-        "Patch": 26
+        "Patch": 27
     },
     "minimumAgentVersion": "2.144.0",
     "instanceNameFormat": "BCZ Download Artifacts - Nexus Repository v3",
@@ -59,7 +59,7 @@
             "properties": {
               "EditableOptions": "True"
             },
-            "helpMarkDown": "The Maven groupId for a component."
+            "helpMarkDown": "Maven groupId or NPM scope."
           },
           {
             "name": "artifact",
@@ -73,7 +73,7 @@
             "properties": {
               "EditableOptions": "True"
             },
-            "helpMarkDown": "The Maven artifactId for a component."
+            "helpMarkDown": "Maven artifactId or NPM name."
           },
           {
             "name": "baseVersion",
@@ -153,11 +153,11 @@
     ],
     "OutputVariables": [{
       "name" : "MAVEN_REPOSITORY_ASSET_FILENAME",
-      "description" : "The primary file name of the asset which was downloaded from your Maven Repository based on the packaging."
+      "description" : "The primary file name of the asset which was downloaded from your Nexus Repository."
     },
     {
       "name" : "MAVEN_REPOSITORY_ASSET_FILENAMES",
-      "description" : "The comma seperated list of all the file names for the assets which were downloaded from your Maven Repository."
+      "description" : "The comma seperated list of all the file names for the assets which were downloaded from your Nexus Repository."
     }],
     "dataSourceBindings": [
       {
